@@ -40,11 +40,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       
       # Step 2: Setup Node.js 24
-      - name: ⚡ Setup Node.js 24
+      - name: ⚡ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
-          cache: 'npm'
+         node-version: '20'
       
       # Step 3: Count files and lines
       - name: 📈 Calculate Code Metrics
