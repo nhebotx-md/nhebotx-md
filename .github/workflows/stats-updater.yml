@@ -1,233 +1,155 @@
 name: 📊 Dynamic Stats Updater
 
 on:
-  # Run every 4 hours
   schedule:
     - cron: "0 */4 * * *"
-  
-  # Run on push to main
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
     paths:
       - '**.js'
       - 'package.json'
-  
-  # Manual trigger
   workflow_dispatch:
 
-# Permissions
 permissions:
   contents: write
-  actions: read
-
-# Environment variables for Node 24
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update-stats:
     name: Update Repository Stats
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Step 1: Checkout repository
+      # 1. Checkout
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Step 2: Setup Node.js 24
-      - name: ⚡ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-         node-version: '20'
-      
-      # Step 3: Count files and lines
+
+      # 2. Calculate Metrics (FIXED)
       - name: 📈 Calculate Code Metrics
         id: metrics
         run: |
-          # Count JavaScript files
           JS_FILES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" | wc -l)
-          
-          # Count total lines of code
-          TOTAL_LINES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}')
-          
-          # Count plugins
+
+          TOTAL_LINES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" -exec wc -l {} + 2>/dev/null | awk '{sum += $1} END {print sum+0}')
+
           PLUGIN_CJS=$(find ./Plugins-CJS -name "*.js" 2>/dev/null | wc -l)
           PLUGIN_ESM=$(find ./Plugins-ESM -name "*.js" 2>/dev/null | wc -l)
-          
-          # Count dependencies
-          DEPS=$(cat package.json | grep -c '"\^' || echo "0")
-          
-          # Get last commit date
+
+          if [ -f package.json ]; then
+            DEPS=$(jq '.dependencies | length' package.json 2>/dev/null || echo "0")
+          else
+            DEPS=0
+          fi
+
           LAST_COMMIT=$(git log -1 --format=%cd --date=short 2>/dev/null || echo "N/A")
-          
-          # Get commit count
           COMMITS=$(git rev-list --count HEAD 2>/dev/null || echo "0")
-          
-          # Export to environment
-          echo "JS_FILES=$JS_FILES" >> $GITHUB_ENV
-          echo "TOTAL_LINES=$TOTAL_LINES" >> $GITHUB_ENV
-          echo "PLUGIN_CJS=$PLUGIN_CJS" >> $GITHUB_ENV
-          echo "PLUGIN_ESM=$PLUGIN_ESM" >> $GITHUB_ENV
-          echo "DEPS=$DEPS" >> $GITHUB_ENV
-          echo "LAST_COMMIT=$LAST_COMMIT" >> $GITHUB_ENV
-          echo "COMMITS=$COMMITS" >> $GITHUB_ENV
-          
-          echo "📊 Metrics calculated:"
-          echo "  JavaScript Files: $JS_FILES"
-          echo "  Total Lines: $TOTAL_LINES"
-          echo "  CJS Plugins: $PLUGIN_CJS"
-          echo "  ESM Plugins: $PLUGIN_ESM"
-          echo "  Dependencies: $DEPS"
-          echo "  Last Commit: $LAST_COMMIT"
-          echo "  Total Commits: $COMMITS"
-      
-      # Step 4: Update stats.json
+
+          {
+            echo "JS_FILES=$JS_FILES"
+            echo "TOTAL_LINES=$TOTAL_LINES"
+            echo "PLUGIN_CJS=$PLUGIN_CJS"
+            echo "PLUGIN_ESM=$PLUGIN_ESM"
+            echo "DEPS=$DEPS"
+            echo "LAST_COMMIT=$LAST_COMMIT"
+            echo "COMMITS=$COMMITS"
+          } >> $GITHUB_ENV
+
+      # 3. Generate JSON Stats
       - name: 📝 Update Stats File
         run: |
           mkdir -p .github/stats
-          
+
           cat > .github/stats/metrics.json << EOF
           {
             "repository": "${{ github.repository }}",
             "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "metrics": {
-              "javascript_files": ${{ env.JS_FILES }},
-              "total_lines": ${{ env.TOTAL_LINES }},
-              "plugins_cjs": ${{ env.PLUGIN_CJS }},
-              "plugins_esm": ${{ env.PLUGIN_ESM }},
-              "dependencies": ${{ env.DEPS }},
-              "total_commits": ${{ env.COMMITS }},
-              "last_commit": "${{ env.LAST_COMMIT }}"
-            },
-            "badges": {
-              "files": "https://img.shields.io/badge/Files-${{ env.JS_FILES }}-00d4ff?style=flat-square",
-              "lines": "https://img.shields.io/badge/Lines-${{ env.TOTAL_LINES }}k-7b2cbf?style=flat-square",
-              "plugins": "https://img.shields.io/badge/Plugins-${{ env.PLUGIN_CJS }}+${{ env.PLUGIN_ESM }}-ff006e?style=flat-square"
+              "javascript_files": $JS_FILES,
+              "total_lines": $TOTAL_LINES,
+              "plugins_cjs": $PLUGIN_CJS,
+              "plugins_esm": $PLUGIN_ESM,
+              "dependencies": $DEPS,
+              "total_commits": $COMMITS,
+              "last_commit": "$LAST_COMMIT"
             }
           }
           EOF
-          
-          echo "✅ Stats file updated"
-          cat .github/stats/metrics.json
-      
-      # Step 5: Update README with dynamic stats
+
+      # 4. Update README (SAFE VERSION)
       - name: 🔄 Update README Stats Section
         run: |
-          # Create stats section content
-          STATS_SECTION="<!-- STATS-START -->
-          ## 📊 Live Repository Stats
-          
-          <div align=\"center\">
-          
-          | Metric | Value |
-          |--------|-------|
-          | 📁 JavaScript Files | **${{ env.JS_FILES }}** |
-          | 📝 Total Lines | **${{ env.TOTAL_LINES }}** |
-          | 🔌 CJS Plugins | **${{ env.PLUGIN_CJS }}** |
-          | ⚡ ESM Plugins | **${{ env.PLUGIN_ESM }}** |
-          | 📦 Dependencies | **${{ env.DEPS }}** |
-          | 🔄 Total Commits | **${{ env.COMMITS }}** |
-          | 📅 Last Update | **${{ env.LAST_COMMIT }}** |
-          
-          </div>
-          
-          <sub>⏰ Stats updated automatically every 4 hours</sub>
-          <!-- STATS-END -->"
-          
-          # Check if README has stats section
+          SECTION=$(cat <<EOF
+<!-- STATS-START -->
+## 📊 Live Repository Stats
+
+<div align="center">
+
+| Metric | Value |
+|--------|-------|
+| 📁 JavaScript Files | **$JS_FILES** |
+| 📝 Total Lines | **$TOTAL_LINES** |
+| 🔌 CJS Plugins | **$PLUGIN_CJS** |
+| ⚡ ESM Plugins | **$PLUGIN_ESM** |
+| 📦 Dependencies | **$DEPS** |
+| 🔄 Total Commits | **$COMMITS** |
+| 📅 Last Update | **$LAST_COMMIT** |
+
+</div>
+
+<sub>⏰ Auto-updated every 4 hours</sub>
+<!-- STATS-END -->
+EOF
+)
+
           if grep -q "<!-- STATS-START -->" README.md; then
-            # Replace existing section
-            sed -i '/<!-- STATS-START -->/,/<!-- STATS-END -->/c\
-          <!-- STATS-START -->\
-          ## 📊 Live Repository Stats\
-          \
-          <div align=\"center\">\
-          \
-          | Metric | Value |\
-          |--------|-------|\
-          | 📁 JavaScript Files | **'"${{ env.JS_FILES }}"'** |\
-          | 📝 Total Lines | **'"${{ env.TOTAL_LINES }}"'** |\
-          | 🔌 CJS Plugins | **'"${{ env.PLUGIN_CJS }}"'** |\
-          | ⚡ ESM Plugins | **'"${{ env.PLUGIN_ESM }}"'** |\
-          | 📦 Dependencies | **'"${{ env.DEPS }}"'** |\
-          | 🔄 Total Commits | **'"${{ env.COMMITS }}"'** |\
-          | 📅 Last Update | **'"${{ env.LAST_COMMIT }}"'** |\
-          \
-          </div>\
-          \
-          <sub>⏰ Stats updated automatically every 4 hours</sub>\
-          <!-- STATS-END -->' README.md
-            echo "✅ README stats section updated"
+            awk '
+              /<!-- STATS-START -->/ {print ENVIRON["SECTION"]; skip=1}
+              /<!-- STATS-END -->/ {skip=0; next}
+              !skip {print}
+            ' README.md > README.tmp && mv README.tmp README.md
           else
-            # Add new section before the footer
-            echo "$STATS_SECTION" >> README.md
-            echo "✅ README stats section added"
+            echo "$SECTION" >> README.md
           fi
-      
-      # Step 6: Commit and push changes
+
+      # 5. Commit Changes (SAFE)
       - name: 💾 Commit Changes
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          # Check if there are changes
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "✅ No changes to commit"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .github/stats/metrics.json README.md
+
+          if git diff --staged --quiet; then
+            echo "No changes"
             exit 0
           fi
-          
-          git add .github/stats/metrics.json README.md
-          git commit -m "📊 Update repository stats [skip ci]
-          
-          - JavaScript Files: ${{ env.JS_FILES }}
-          - Total Lines: ${{ env.TOTAL_LINES }}
-          - CJS Plugins: ${{ env.PLUGIN_CJS }}
-          - ESM Plugins: ${{ env.PLUGIN_ESM }}
-          - Dependencies: ${{ env.DEPS }}
-          - Total Commits: ${{ env.COMMITS }}
-          
-          Auto-generated by GitHub Actions"
-          
-          git push
-          echo "✅ Changes pushed to repository"
-      
-      # Step 7: Create summary
-      - name: 📋 Create Job Summary
-        run: |
-          echo "## 📊 Stats Update Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| JavaScript Files | ${{ env.JS_FILES }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Lines | ${{ env.TOTAL_LINES }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| CJS Plugins | ${{ env.PLUGIN_CJS }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ESM Plugins | ${{ env.PLUGIN_ESM }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependencies | ${{ env.DEPS }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Commits | ${{ env.COMMITS }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Last Update | ${{ env.LAST_COMMIT }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⏰ Next update in 4 hours" >> $GITHUB_STEP_SUMMARY
 
-  # Status check job
+          git commit -m "📊 Auto update stats"
+          git push
+
+      # 6. Summary
+      - name: 📋 Summary
+        run: |
+          echo "## Stats Updated ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- JS Files: $JS_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "- Lines: $TOTAL_LINES" >> $GITHUB_STEP_SUMMARY
+          echo "- Plugins: $PLUGIN_CJS + $PLUGIN_ESM" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependencies: $DEPS" >> $GITHUB_STEP_SUMMARY
+          echo "- Commits: $COMMITS" >> $GITHUB_STEP_SUMMARY
+
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
     needs: update-stats
     if: always()
-    
+
     steps:
-      - name: ✅ Final Status
+      - name: Final Status
         run: |
-          if [ "${{ needs.update-stats.result }}" == "success" ]; then
-            echo "✅ Stats updater completed successfully!"
-          elif [ "${{ needs.update-stats.result }}" == "skipped" ]; then
-            echo "⏭️ Stats updater skipped (no changes)"
+          if [ "${{ needs.update-stats.result }}" = "success" ]; then
+            echo "✅ Success"
           else
-            echo "❌ Stats updater failed"
+            echo "❌ Failed"
             exit 1
           fi
