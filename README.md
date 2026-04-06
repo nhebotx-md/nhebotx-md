@@ -12,6 +12,14 @@
   <img src="https://img.shields.io/badge/System-AI%20Bot%20Framework-00f7ff?style=for-the-badge&labelColor=0d1117"/>
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/nhebotx-md/nhebotx-md/output/github-contribution-grid-snake-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/nhebotx-md/nhebotx-md/output/github-contribution-grid-snake-light.svg">
+    <img src="https://raw.githubusercontent.com/nhebotx-md/nhebotx-md/output/github-contribution-grid-snake-dark.svg">
+  </picture>
+</p>
+
 ---
 
 ## 🧠 SYSTEM PROFILE
@@ -23,3 +31,4 @@
 > STACK     : Node.js + Baileys
 > SYSTEM    : Modular Plugin Framework
 > STATUS    : ONLINE ⚡
+
