@@ -1,34 +1,25 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/nhebotx-md/nhebotx-md/main/banner-shonhe-tangx.png" />
+</p>
+
 <h1 align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?size=32&duration=2500&color=00F7FF&center=true&vCenter=true&width=800&lines=ShoNhe+Tangx+System;Cyberpunk+AI+Engineer;WhatsApp+Bot+Architect;Initializing+Neural+Core..." />
+  <img src="https://readme-typing-svg.herokuapp.com?size=30&duration=2500&color=00F7FF&center=true&vCenter=true&width=800&lines=ShoNhe+Tangx+MD;AI+WhatsApp+Bot+Engineer;Cyberpunk+Automation+System" />
 </h1>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=venom&color=0:0f0c29,50:302b63,100:24243e&height=200&section=header&text=ShoNhe%20Tangx&fontSize=45&fontColor=00f7ff&animation=fadeIn"/>
+  <img src="https://img.shields.io/github/followers/nhebotx-md?style=for-the-badge&color=00f7ff&labelColor=0d1117"/>
+  <img src="https://img.shields.io/github/stars/nhebotx-md/basebot?style=for-the-badge&color=00f7ff&labelColor=0d1117"/>
+  <img src="https://img.shields.io/badge/System-AI%20Bot%20Framework-00f7ff?style=for-the-badge&labelColor=0d1117"/>
 </p>
 
 ---
 
-## 🧠 NEURAL PROFILE
+## 🧠 SYSTEM PROFILE
 
 ```bash
 > NAME      : ShoNhe Tangx
 > ROLE      : AI Bot Architect
-> SYSTEM    : WhatsApp Multi Device Engine
-> CORE      : Node.js + Baileys
-> MODE      : CYBERPUNK ACTIVE
+> FOCUS     : WhatsApp Automation System
+> STACK     : Node.js + Baileys
+> SYSTEM    : Modular Plugin Framework
 > STATUS    : ONLINE ⚡
-
-<!--
-**nhebotx-md/nhebotx-md** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-
-Here are some ideas to get you started:
-
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
