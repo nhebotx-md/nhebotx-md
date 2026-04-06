@@ -1,35 +1,161 @@
-name: ShoNhe Cyber Snake
+name: 🐍 Generate Snake Contribution Grid
 
 on:
+  # Run automatically every 6 hours
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 */6 * * *"
+  
+  # Run on every push to main branch
+  push:
+    branches:
+      - main
+      - master
+  
+  # Allow manual trigger
   workflow_dispatch:
+    inputs:
+      theme:
+        description: 'Snake theme to generate'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - dark
+          - light
+          - cyber
 
-# 🔑 WAJIB: biar bisa push ke repo (fix error 403)
+# Permissions required for deployment
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
-# ⚡ Force Node.js 24 (future-proof)
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+# Concurrency control
+concurrency:
+  group: snake-generation
+  cancel-in-progress: false
 
 jobs:
-  build:
+  generate-snake:
+    name: Generate Contribution Snake
     runs-on: ubuntu-latest
-
+    
+    # Environment variables for Node 24 compatibility
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      NODE_OPTIONS: --no-warnings
+      
     steps:
-      - name: Generate Snake (Cyberpunk Mode)
+      # Step 1: Checkout repository
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Step 2: Setup Node.js 24
+      - name: ⚡ Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+      
+      # Step 3: Generate Dark Mode Snake
+      - name: 🌙 Generate Dark Snake
+        if: github.event.inputs.theme == 'all' || github.event.inputs.theme == 'dark' || github.event.inputs.theme == ''
         uses: Platane/snk@v3
         with:
-          github_user_name: nhebotx-md
+          github_user_name: ${{ github.repository_owner }}
           outputs: |
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=00f7ff
-            dist/github-contribution-grid-snake-light.svg?palette=github-light&color_snake=00f7ff
-            dist/github-contribution-grid-snake-cyber.svg?color_snake=00ffff&color_dots=#0d1117,#001f2f,#00f7ff,#00ffff,#ffffff
-
-      - name: Deploy to output branch
+            dist/github-contribution-grid-snake-dark.svg
+            dist/github-contribution-grid-snake-dark.gif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      
+      # Step 4: Generate Light Mode Snake
+      - name: ☀️ Generate Light Snake
+        if: github.event.inputs.theme == 'all' || github.event.inputs.theme == 'light' || github.event.inputs.theme == ''
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-contribution-grid-snake-light.svg
+            dist/github-contribution-grid-snake-light.gif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      
+      # Step 5: Generate Cyberpunk Snake
+      - name: 🌆 Generate Cyberpunk Snake
+        if: github.event.inputs.theme == 'all' || github.event.inputs.theme == 'cyber' || github.event.inputs.theme == ''
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-contribution-grid-snake-cyber.svg
+            dist/github-contribution-grid-snake-cyber.gif
+          color_snake: '#00d4ff'
+          color_dots: '#0d1117,#161b22,#21262d,#30363d,#484f58,#6e7681,#8b949e,#c9d1d9'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      
+      # Step 6: List generated files
+      - name: 📋 List Generated Files
+        run: |
+          echo "=== Generated Snake Files ==="
+          ls -la dist/ 2>/dev/null || echo "No dist folder found"
+          echo "============================="
+      
+      # Step 7: Deploy to output branch
+      - name: 🚀 Deploy to Output Branch
         uses: peaceiris/actions-gh-pages@v4
+        if: success()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dist
+          publish_dir: ./dist
           publish_branch: output
+          commit_message: "🐍 Update contribution snake grids [skip ci]"
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          full_commit_message: |
+            🐍 Update contribution snake grids
+            
+            - Generated at: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+            - Workflow: ${{ github.workflow }}
+            - Run ID: ${{ github.run_id }}
+      
+      # Step 8: Verify deployment
+      - name: ✅ Verify Deployment
+        run: |
+          echo "Snake generation completed successfully!"
+          echo "Files deployed to output branch"
+          echo "Dark: github-contribution-grid-snake-dark.svg"
+          echo "Light: github-contribution-grid-snake-light.svg"
+          echo "Cyber: github-contribution-grid-snake-cyber.svg"
+      
+      # Step 9: Cleanup
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          rm -rf dist/ 2>/dev/null || true
+          echo "Cleanup completed"
+
+  # Job for status notification
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: generate-snake
+    if: always()
+    
+    steps:
+      - name: 📊 Workflow Status
+        run: |
+          if [ "${{ needs.generate-snake.result }}" == "success" ]; then
+            echo "✅ Snake generation completed successfully!"
+          else
+            echo "❌ Snake generation failed"
+            exit 1
+          fi
