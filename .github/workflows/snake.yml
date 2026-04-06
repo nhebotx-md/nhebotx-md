@@ -1,13 +1,15 @@
-name: Premium Snake
+name: ShoNhe Cyber Snake
 
 on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+# 🔑 WAJIB: biar bisa push ke repo (fix error 403)
 permissions:
   contents: write
 
+# ⚡ Force Node.js 24 (future-proof)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -16,15 +18,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate Snake (Dark + Light)
+      - name: Generate Snake (Cyberpunk Mode)
         uses: Platane/snk@v3
         with:
           github_user_name: nhebotx-md
           outputs: |
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=00f7ff
             dist/github-contribution-grid-snake-light.svg?palette=github-light&color_snake=00f7ff
+            dist/github-contribution-grid-snake-cyber.svg?color_snake=00ffff&color_dots=#0d1117,#001f2f,#00f7ff,#00ffff,#ffffff
 
-      - name: Deploy
+      - name: Deploy to output branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
